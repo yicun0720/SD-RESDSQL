@@ -269,7 +269,8 @@ def _test(opt):
         model = model.cuda()
 
     model.eval()
-    predict_sqls = []
+    predict_sqls = [] # 1-dim
+    predict_all_sqls = []  # 2-dim
     for batch in tqdm(dev_dataloder):
         batch_inputs = [data[0] for data in batch]
         batch_db_ids = [data[1] for data in batch]
@@ -310,7 +311,7 @@ def _test(opt):
                     batch_tc_original
                 )
             elif opt.target_type == "natsql":
-                predict_sqls += decode_natsqls(
+                final_sqls, final_all_sqls = decode_natsqls(
                     opt.db_path, 
                     model_outputs, 
                     batch_db_ids, 
@@ -319,6 +320,8 @@ def _test(opt):
                     batch_tc_original, 
                     table_dict
                 )
+                predict_sqls += final_sqls
+                predict_all_sqls += final_all_sqls
             else:
                 raise ValueError()
     
@@ -330,6 +333,19 @@ def _test(opt):
     with open(opt.output, "w", encoding = 'utf-8') as f:
         for pred in predict_sqls:
             f.write(pred + "\n")
+
+    with open("./data/spider/dev.json", 'r') as f:
+        metadatas = json.load(f)
+
+    save_file = opt.output[:str(opt.output).rindex("/")] + "/all_pred.sql"
+    with open(save_file, "w", encoding = 'utf-8') as f:
+        records = []
+        for i, all_preds in enumerate(predict_all_sqls):
+            meta = metadatas[i]
+            record = {"id": i, "db_id": meta["db_id"], "gold": meta["query"],
+                      "gpt_answers1": all_preds, "gpt_answers2": [], "gpt_answers3": []}
+            records.append(record)
+        json.dump(records, f, indent=2)
     
     end_time = time.time()
     print("Text-to-SQL inference spends {}s.".format(end_time-start_time))

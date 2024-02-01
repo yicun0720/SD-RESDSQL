@@ -147,20 +147,20 @@ def decode_natsqls(
     num_return_sequences = generator_outputs.shape[1]
 
     final_sqls = []
-    
+    final_all_sqls = []  # 2-dim: [[], [], ...]
     for batch_id in range(batch_size):
         pred_executable_sql = "sql placeholder"
         db_id = batch_db_ids[batch_id]
         db_file_path = db_path + "/{}/{}.sqlite".format(db_id, db_id)
         
-        # print(batch_inputs[batch_id])
-        # print("\n".join(tokenizer.batch_decode(generator_outputs[batch_id, :, :], skip_special_tokens = True)))
-
+        final_all_sqls_per_case = []
+        catch_original_pred = False
         for seq_id in range(num_return_sequences):
             cursor = get_cursor_from_path(db_file_path)
             pred_sequence = tokenizer.decode(generator_outputs[batch_id, seq_id, :], skip_special_tokens = True)
 
-            pred_natsql = pred_sequence.split("|")[-1].strip()
+            pred_natsqls = pred_sequence.split("|") 
+            pred_natsql = pred_natsqls[-1].strip()
             pred_natsql = pred_natsql.replace("='", "= '").replace("!=", " !=").replace(",", " ,")
             old_pred_natsql = pred_natsql
             # if the predicted natsql has some fatal errors, try to correct it
@@ -177,24 +177,115 @@ def decode_natsqls(
                 assert len(pred_sql) > 0, "pred sql is empty!"
 
                 results = execute_sql(cursor, pred_sql)
-                cursor.close()
-                cursor.connection.close()
+                # cursor.close()
+                # cursor.connection.close()
                 # if the current sql has no execution error, we record and return it
                 pred_executable_sql = pred_sql
-                break
+                if not catch_original_pred:
+                    final_sqls.append(pred_executable_sql)
+                    catch_original_pred = True
+                    # break
             except Exception as e:
                 print(pred_sql)
                 print(e)
-                cursor.close()
-                cursor.connection.close()
+                # cursor.close()
+                # cursor.connection.close()
             except FunctionTimedOut as fto:
                 print(pred_sql)
                 print(fto)
                 del cursor
+
+            for pred_natsql in pred_natsqls:
+                pred_natsql = pred_natsql.strip()
+                pred_natsql = pred_natsql.replace("='", "= '").replace("!=", " !=").replace(",", " ,")
+                old_pred_natsql = pred_natsql
+                # if the predicted natsql has some fatal errors, try to correct it
+                pred_natsql = fix_fatal_errors_in_natsql(pred_natsql, batch_tc_original[batch_id])
+                if old_pred_natsql != pred_natsql:
+                    print("Before fix:", old_pred_natsql)
+                    print("After fix:", pred_natsql)
+                    print("---------------")
+                pred_sql = natsql_to_sql(pred_natsql, db_id, db_file_path, table_dict[db_id]).strip()
+
+                # try to execute the predicted sql
+                try:
+                    # Note: execute_sql will be success for empty string
+                    assert len(pred_sql) > 0, "pred sql is empty!"
+
+                    results = execute_sql(cursor, pred_sql)
+                    # if the current sql has no execution error, we record and return it
+                    pred_executable_sql = pred_sql
+
+                    final_all_sqls_per_case.append(pred_executable_sql)
+                except Exception as e:
+                    print(pred_sql)
+                    print(e)
+                except FunctionTimedOut as fto:
+                    print(pred_sql)
+                    print(fto)
+                    del cursor
+            
+            cursor.close()
+            cursor.connection.close()
+
+        if not catch_original_pred:
+            final_sqls.append("sql placeholder")
+        final_all_sqls.append(final_all_sqls_per_case)
+
+
+    # final_all_sqls = []  # 2-dim: [[], [], ...]
+    # for batch_id in range(batch_size):
+    #     pred_executable_sql = "sql placeholder"
+    #     db_id = batch_db_ids[batch_id]
+    #     db_file_path = db_path + "/{}/{}.sqlite".format(db_id, db_id)
         
-        final_sqls.append(pred_executable_sql)
+    #     final_sqls_per_case = []
+    #     for seq_id in range(num_return_sequences):
+    #         cursor = get_cursor_from_path(db_file_path)
+    #         pred_sequence = tokenizer.decode(generator_outputs[batch_id, seq_id, :], skip_special_tokens = True)
+
+    #         pred_natsqls = pred_sequence.split("|")
+
+    #         for pred_natsql in pred_natsqls:
+    #             pred_natsql = pred_natsql.strip()
+    #             pred_natsql = pred_natsql.replace("='", "= '").replace("!=", " !=").replace(",", " ,")
+    #             old_pred_natsql = pred_natsql
+    #             # if the predicted natsql has some fatal errors, try to correct it
+    #             pred_natsql = fix_fatal_errors_in_natsql(pred_natsql, batch_tc_original[batch_id])
+    #             if old_pred_natsql != pred_natsql:
+    #                 print("Before fix:", old_pred_natsql)
+    #                 print("After fix:", pred_natsql)
+    #                 print("---------------")
+    #             pred_sql = natsql_to_sql(pred_natsql, db_id, db_file_path, table_dict[db_id]).strip()
+
+    #             # try to execute the predicted sql
+    #             try:
+    #                 # Note: execute_sql will be success for empty string
+    #                 assert len(pred_sql) > 0, "pred sql is empty!"
+
+    #                 results = execute_sql(cursor, pred_sql)
+    #                 # cursor.close()
+    #                 # cursor.connection.close()
+    #                 # if the current sql has no execution error, we record and return it
+    #                 pred_executable_sql = pred_sql
+
+    #                 final_sqls_per_case.append(pred_executable_sql)
+    #                 # break
+    #             except Exception as e:
+    #                 print(pred_sql)
+    #                 print(e)
+    #                 # cursor.close()
+    #                 # cursor.connection.close()
+    #             except FunctionTimedOut as fto:
+    #                 print(pred_sql)
+    #                 print(fto)
+    #                 del cursor
+    #         cursor.close()
+    #         cursor.connection.close()
+
+    #     final_all_sqls.append(final_sqls_per_case)           
     
-    return final_sqls
+    return final_sqls, final_all_sqls
 
 def decode_sqls(
     db_path,
