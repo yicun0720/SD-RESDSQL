@@ -302,7 +302,7 @@ def _test(opt):
 
             model_outputs = model_outputs.view(len(batch_inputs), opt.num_return_sequences, model_outputs.shape[1])
             if opt.target_type == "sql":
-                predict_sqls += decode_sqls(
+                final_sqls, final_all_sqls = decode_sqls(
                     opt.db_path, 
                     model_outputs, 
                     batch_db_ids, 
@@ -310,6 +310,8 @@ def _test(opt):
                     tokenizer, 
                     batch_tc_original
                 )
+                predict_sqls += final_sqls
+                predict_all_sqls += final_all_sqls
             elif opt.target_type == "natsql":
                 final_sqls, final_all_sqls = decode_natsqls(
                     opt.db_path, 
@@ -334,7 +336,7 @@ def _test(opt):
         for pred in predict_sqls:
             f.write(pred + "\n")
 
-    with open("./data/spider/dev.json", 'r') as f:
+    with open(opt.original_dev_filepath, 'r') as f:
         metadatas = json.load(f)
 
     save_file = opt.output[:str(opt.output).rindex("/")] + "/all_pred.sql"
