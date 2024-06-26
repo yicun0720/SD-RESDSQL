@@ -160,7 +160,9 @@ def decode_natsqls(
     for batch_id in range(batch_size):
         pred_executable_sql = "sql placeholder"
         db_id = batch_db_ids[batch_id]
-        db_file_path = db_path + "/{}/{}.sqlite".format(db_id, db_id)
+        db_file_path = os.path.join(db_path, db_id, db_id + ".sqlite")
+        if not os.path.exists(db_file_path):
+            db_file_path = os.path.join(db_path, db_id, db_id + "_0.sqlite")
 
         final_all_sqls_per_case = []
         catch_original_pred = False
@@ -313,7 +315,9 @@ def decode_sqls(
     for batch_id in range(batch_size):
         pred_executable_sql = "sql placeholder"
         db_id = batch_db_ids[batch_id]
-        db_file_path = db_path + "/{}/{}.sqlite".format(db_id, db_id)
+        db_file_path = os.path.join(db_path, db_id, db_id + ".sqlite")
+        if not os.path.exists(db_file_path):
+            db_file_path = os.path.join(db_path, db_id, db_id + "_0.sqlite")
 
         # print(batch_inputs[batch_id])
         # print("\n".join(tokenizer.batch_decode(generator_outputs[batch_id, :, :], skip_special_tokens = True)))

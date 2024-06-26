@@ -34,6 +34,9 @@ def parse_option():
     parser.add_argument("--target_type", type = str, default = "sql",
                 help = "sql or natsql.")
     parser.add_argument("--output", type = str, default = "predicted_sql.txt")
+
+    parser.add_argument("--start_id", type=int, default=-1)
+    parser.add_argument("--end_id", type=int, default=-1)
     
     opt = parser.parse_args()
 
@@ -53,10 +56,18 @@ if __name__ == "__main__":
 
     eval_results = []
     for ckpt_name in ckpt_names:
+        if opt.start_id >= 0 and ckpt_names.index(ckpt_name) < opt.start_id:
+            continue
+        if opt.end_id >= 0 and ckpt_names.index(ckpt_name) > opt.end_id:
+            continue
+        # Temporarily ignore half of all ckpts to accelerate
+        if ckpt_names.index(ckpt_name) % 2 == 0:
+            continue
+
         print("Start evaluating ckpt: {}".format(ckpt_name))
         
         opt.save_path = save_path + "/{}".format(ckpt_name)
-        em, exec = _test(opt)
+        em, exec = _test(opt, checkpoint=ckpt_name)
         
         eval_result = dict()
         eval_result["ckpt"] = opt.save_path

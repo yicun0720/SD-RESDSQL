@@ -1,6 +1,7 @@
 import os
 import json
 import torch
+import torch.nn as nn
 import transformers
 import argparse
 import torch.optim as optim
@@ -165,6 +166,12 @@ def prepare_batch_inputs_and_labels(batch, tokenizer):
     encoder_input_attention_mask = tokenized_inputs["attention_mask"]
     batch_aligned_column_labels = [torch.LongTensor(column_labels) for column_labels in batch_aligned_column_labels]
     batch_aligned_table_labels = [torch.LongTensor(table_labels) for table_labels in batch_aligned_table_labels]
+    batch_aligned_question_ids = [torch.LongTensor(question_ids) for question_ids in batch_aligned_question_ids]
+    batch_aligned_column_info_ids = [[torch.LongTensor(column_info_id) for column_info_id in column_info_ids]
+                                     for column_info_ids in batch_aligned_column_info_ids]
+    batch_aligned_table_name_ids = [[torch.LongTensor(table_name_id) for table_name_id in table_name_ids]
+                                    for table_name_ids in batch_aligned_table_name_ids]
+    batch_column_number_in_each_table = [torch.LongTensor(column_number) for column_number in batch_column_number_in_each_table]
 
     # print("\n".join(tokenizer.batch_decode(encoder_input_ids, skip_special_tokens = True)))
 
@@ -173,6 +180,12 @@ def prepare_batch_inputs_and_labels(batch, tokenizer):
         encoder_input_attention_mask = encoder_input_attention_mask.cuda()
         batch_aligned_column_labels = [column_labels.cuda() for column_labels in batch_aligned_column_labels]
         batch_aligned_table_labels = [table_labels.cuda() for table_labels in batch_aligned_table_labels]
+        batch_aligned_question_ids = [question_ids.cuda() for question_ids in batch_aligned_question_ids]
+        batch_aligned_column_info_ids = [[column_info_id.cuda() for column_info_id in column_info_ids]
+                                         for column_info_ids in batch_aligned_column_info_ids]
+        batch_aligned_table_name_ids = [[table_name_id.cuda() for table_name_id in table_name_ids]
+                                        for table_name_ids in batch_aligned_table_name_ids]
+        batch_column_number_in_each_table = [column_number.cuda() for column_number in batch_column_number_in_each_table]
 
     return encoder_input_ids, encoder_input_attention_mask, \
         batch_aligned_column_labels, batch_aligned_table_labels, \
@@ -234,6 +247,9 @@ def _train(opt):
     )
 
     if torch.cuda.is_available():
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            model = nn.DataParallel(model)
         model = model.cuda()
 
     # warm up steps (10% training step)

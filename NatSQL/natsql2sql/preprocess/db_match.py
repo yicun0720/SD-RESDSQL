@@ -28,7 +28,9 @@ class DBEngine:
         else:
             return
         self.db_id = fdb
-        file_path = os.path.join(database_path,fdb,fdb+ ".sqlite")
+        file_path = os.path.join(database_path, fdb, fdb + ".sqlite")
+        if not os.path.exists(file_path):
+            file_path = os.path.join(database_path, fdb, fdb + "_0.sqlite")
         try:
             self.db = sqlite3.connect(file_path)
         except Exception as e:

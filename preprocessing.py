@@ -1,3 +1,4 @@
+import os.path
 import re
 import json
 import argparse
@@ -401,6 +402,8 @@ def main(opt):
         
         preprocessed_dataset.append(preprocessed_data)
 
+    if not os.path.exists(os.path.dirname(opt.output_dataset_path)):
+        os.makedirs(os.path.dirname(opt.output_dataset_path))
     with open(opt.output_dataset_path, "w") as f:
         preprocessed_dataset_str = json.dumps(preprocessed_dataset, indent = 2, ensure_ascii = False)
         f.write(preprocessed_dataset_str)

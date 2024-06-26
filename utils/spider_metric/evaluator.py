@@ -32,9 +32,10 @@ class EvaluateTool(object):
     
                 db_id = sample["db_id"]
                 if db_id not in self.schema_cache:
-                    self.schema_cache[db_id] = dump_db_json_schema(
-                        db=os.path.join(db_path, db_id, f"{db_id}.sqlite"), f=db_id
-                    )
+                    db_file_path = os.path.join(db_path, db_id, db_id + ".sqlite")
+                    if not os.path.exists(db_file_path):
+                        db_file_path = os.path.join(db_path, db_id, db_id + "_0.sqlite")
+                    self.schema_cache[db_id] = dump_db_json_schema(db=db_file_path, f=db_id)
                 schema = self.schema_cache[db_id]
 
                 self.golds.append({

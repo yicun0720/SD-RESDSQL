@@ -5,8 +5,15 @@
 *__pycache__/
 
 data/
+data_refined/
 database/
+database_refined/
+test_suite/
+test_suite_refined/
+
 models/
 predictions/
+tensorboard_log/
+eval_results/
 
 third_party/

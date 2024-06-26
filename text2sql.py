@@ -1,6 +1,7 @@
 import os
 import json
 import torch
+import torch.nn as nn
 import argparse
 import torch.optim as optim
 import transformers
@@ -111,6 +112,9 @@ def _train(opt):
     model = model_class.from_pretrained(opt.model_name_or_path)
     model.resize_token_embeddings(len(text2sql_tokenizer))
     if torch.cuda.is_available():
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            model = nn.DataParallel(model)
         model = model.cuda()
     
     print("finished.")
@@ -202,14 +206,15 @@ def _train(opt):
             )
             
             loss = model_outputs["loss"]
-            loss.backward()
+
+            loss.sum().backward()
 
             if scheduler is not None:
                 scheduler.step()
 
             if writer is not None:
                 # record training loss (tensorboard)
-                writer.add_scalar('train loss', loss.item(), train_step)
+                writer.add_scalar('train loss', loss.sum().item(), train_step)
                 # record learning rate (tensorboard)
                 writer.add_scalar('train lr', optimizer.state_dict()['param_groups'][0]['lr'], train_step)
 
@@ -221,10 +226,10 @@ def _train(opt):
             if train_step % num_checkpoint_steps == 0 and epoch >= 6:
                 print(f"At {train_step} training step, save a checkpoint.")
                 os.makedirs(opt.save_path, exist_ok = True)
-                model.save_pretrained(save_directory = opt.save_path + "/checkpoint-{}".format(train_step))
+                model.module.save_pretrained(save_directory = opt.save_path + "/checkpoint-{}".format(train_step))
                 text2sql_tokenizer.save_pretrained(save_directory = opt.save_path + "/checkpoint-{}".format(train_step))
     
-def _test(opt):
+def _test(opt, checkpoint=None):
     set_seed(opt.seed)
     print(opt)
 
@@ -326,29 +331,27 @@ def _test(opt):
                 predict_all_sqls += final_all_sqls
             else:
                 raise ValueError()
-    
-    new_dir = "/".join(opt.output.split("/")[:-1]).strip()
-    if new_dir != "":
-        os.makedirs(new_dir, exist_ok = True)
+
+    output_save_dir = opt.output if checkpoint is None else os.path.join(opt.output, checkpoint)
+    if not os.path.exists(output_save_dir):
+        os.makedirs(output_save_dir, exist_ok = True)
     
     # save results
-    with open(opt.output, "w", encoding = 'utf-8') as f:
+    with open(os.path.join(output_save_dir, "preds.sql"), "w", encoding = 'utf-8') as f:
         for pred in predict_sqls:
             f.write(pred + "\n")
 
     with open(opt.original_dev_filepath, 'r') as f:
         metadatas = json.load(f)
 
-    save_file = opt.output[:str(opt.output).rindex("/")] + "/all_pred.sql"
-    with open(save_file, "w", encoding = 'utf-8') as f:
+    with open(os.path.join(output_save_dir, "all_preds.sql"), "w", encoding = 'utf-8') as f:
         records = []
         for i, all_preds in enumerate(predict_all_sqls):
             meta = metadatas[i]
-            record = {"id": i, "db_id": meta["db_id"], "gold": meta["query"],
-                      "gpt_answers1": all_preds, "gpt_answers2": [], "gpt_answers3": []}
+            record = {"id": i, "db_id": meta["db_id"], "gold": meta["query"], "preds": all_preds}
             records.append(record)
         json.dump(records, f, indent=2)
-    
+
     end_time = time.time()
     print("Text-to-SQL inference spends {}s.".format(end_time-start_time))
     
