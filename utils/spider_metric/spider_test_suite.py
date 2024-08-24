@@ -35,7 +35,7 @@ def compute_test_suite_metric(predictions, references, db_dir: Optional[str] = N
         kmaps=foreign_key_maps,
         etype="exec",
         plug_value=False,
-        keep_distinct=False,
+        keep_distinct=True,  # SQLDriller
         progress_bar_for_each_datapoint=False,
     )
     # Only used for Sparc/CoSQL

@@ -1,5 +1,18 @@
 set -e
 
+if [ $target = "baseline" ]
+then
+    dataset_dir="data"
+    database_dir="database"
+elif [ $target = "refined" ]
+then
+    dataset_dir="data_refined"
+    database_dir="database_refined"
+else
+    echo "The first arg must in [baseline, refined]."
+    exit
+fi
+
 # train text2sql-t5-3b model
 python -u text2sql.py \
     --batch_size 6 \
@@ -8,24 +21,11 @@ python -u text2sql.py \
     --learning_rate 5e-5 \
     --epochs 128 \
     --seed 42 \
-    --save_path "./models/text2sql-t5-3b" \
-    --tensorboard_save_path "./tensorboard_log/text2sql-t5-3b" \
+#    --save_path "/mnt/pj_nfs/yicun/models/text2sql-t5-3b" \
+    --save_path "./models/text2sql-t5-3b_${target}" \
+#    --tensorboard_save_path "/mnt/pj_nfs/yicun/tensorboard_log/text2sql-t5-3b" \
+    --tensorboard_save_path "./tensorboard_log/text2sql-t5-3b_${target}" \
     --model_name_or_path "t5-3b" \
     --use_adafactor \
     --mode train \
-    --train_filepath "./data/preprocessed_data/resdsql_train_spider.json"
-
-# select the best text2sql-t5-3b ckpt
-python -u evaluate_text2sql_ckpts.py \
-    --batch_size 2 \
-    --device "0" \
-    --seed 42 \
-    --save_path "./models/text2sql-t5-3b" \
-    --eval_results_path "./eval_results/text2sql-t5-3b" \
-    --mode eval \
-    --dev_filepath "./data/preprocessed_data/resdsql_dev.json" \
-    --original_dev_filepath "./data/spider/dev.json" \
-    --db_path "./database" \
-    --num_beams 8 \
-    --num_return_sequences 8 \
-    --target_type "sql"
+    --train_filepath "./${dataset_dir}/preprocessed_data/resdsql_train_spider.json"

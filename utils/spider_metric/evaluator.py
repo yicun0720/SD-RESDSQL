@@ -57,7 +57,8 @@ class EvaluateTool(object):
                 })
 
     def evaluate(self, preds):
-        exact_match = compute_exact_match_metric(preds, self.golds)
+        # exact_match = compute_exact_match_metric(preds, self.golds)
+        exact_match = {"exact_match": 0.00}
         test_suite = compute_test_suite_metric(preds, self.golds, db_dir = None)
         
         return {**exact_match, **test_suite}

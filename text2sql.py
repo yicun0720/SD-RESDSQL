@@ -360,7 +360,7 @@ def _test(opt, checkpoint=None):
         evaluator = EvaluateTool()
         evaluator.register_golds(opt.original_dev_filepath, opt.db_path)
         spider_metric_result = evaluator.evaluate(predict_sqls)
-        print('exact_match score: {}'.format(spider_metric_result["exact_match"]))
+        # print('exact_match score: {}'.format(spider_metric_result["exact_match"]))
         print('exec score: {}'.format(spider_metric_result["exec"]))
     
         return spider_metric_result["exact_match"], spider_metric_result["exec"]
