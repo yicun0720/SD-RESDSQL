@@ -1,5 +1,5 @@
-# RESDSQL: Decoupling Schema Linking and Skeleton Parsing for Text-to-SQL
-This README is used to guide the evaluation of SQLDriller project.
+# RESDSQL Evaluation for SQLDriller
+This README is used to guide the evaluation of SQLDriller.
 
 ## Prerequisites
 Follow the same instructions in the `Prerequisites` section of `README.md` to create a running environment.
