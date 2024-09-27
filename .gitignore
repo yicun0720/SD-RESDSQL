@@ -8,6 +8,7 @@ data/
 data_refined/
 database/
 database_refined/
+database_refined_old/
 test_suite/
 test_suite_refined/
 
