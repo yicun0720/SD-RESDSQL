@@ -15,7 +15,7 @@ else
     exit
 fi
 
-# train schema item classifiifier.py \
+python schema_item_classifier.py \
     --batch_size 16 \
     --gradient_descent_step 2 \
     --device "0" \

@@ -52,11 +52,11 @@ def parse_option():
                         help='trian, eval or test.')
     parser.add_argument('--train_filepath', type = str, default = "data/preprocessed_data/resdsql_train_spider.json",
                         help = 'file path of test2sql training set.')
-    parser.add_argument('--dev_filepath', type = str, default = "data/preprocessed_data/resdsql_dev.json",
+    parser.add_argument('--dev_filepath', type = str, default = "data_refined/preprocessed_data/resdsql_dev.json",
                         help = 'file path of test2sql dev set.')
-    parser.add_argument('--original_dev_filepath', type = str, default = "data/spider/dev.json",
+    parser.add_argument('--original_dev_filepath', type = str, default = "data_refined/spider/dev.json",
                         help = 'file path of the original dev set (for registing evaluator).')
-    parser.add_argument('--db_path', type = str, default = "database",
+    parser.add_argument('--db_path', type = str, default = "database_refined",
                         help = 'file path of database.')
     parser.add_argument('--tables_for_natsql', type = str, default = "NatSQL/NatSQLv1_6/tables_for_natsql.json",
                         help = 'file path of tables_for_natsql.json.')
@@ -226,7 +226,7 @@ def _train(opt):
             if train_step % num_checkpoint_steps == 0 and epoch >= 6:
                 print(f"At {train_step} training step, save a checkpoint.")
                 os.makedirs(opt.save_path, exist_ok = True)
-                model.module.save_pretrained(save_directory = opt.save_path + "/checkpoint-{}".format(train_step))
+                model.save_pretrained(save_directory = opt.save_path + "/checkpoint-{}".format(train_step))
                 text2sql_tokenizer.save_pretrained(save_directory = opt.save_path + "/checkpoint-{}".format(train_step))
     
 def _test(opt, checkpoint=None):

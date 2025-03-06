@@ -30,7 +30,7 @@ then
 elif [ $train_target = "refined" ]
 then
 #    text2sql_model_save_path="./models/text2sql-t5-${model_size}_refined/checkpoint-${ckpt_id}"
-    text2sql_model_save_path="/mnt/pj_nfs/yicun/models/text2sql-t5-3b/checkpoint-106624"
+    text2sql_model_save_path="/mnt/pj_nfs/yicun/models/text2sql-t5-3b_refined/checkpoint-133280/"
 else
     echo "The forth arg must in [baseline, refined]."
     exit
@@ -57,38 +57,38 @@ fi
 
 schema_item_classifier_model_save_path="./models/text2sql_schema_item_classifier_${train_target}"
 
-## preprocess test set
-#python preprocessing.py \
-#    --mode "test" \
-#    --table_path $table_path \
-#    --input_dataset_path $input_dataset_path \
-#    --output_dataset_path "./${test_dataset_dir}/preprocessed_data/preprocessed_test.json" \
-#    --db_path $db_path \
-#    --target_type "sql"
-#
-## predict probability for each schema item
-#python schema_item_classifier.py \
-#    --batch_size 32 \
-#    --device $device \
-#    --seed 42 \
-#    --save_path $schema_item_classifier_model_save_path \
-#    --dev_filepath "./${test_dataset_dir}/preprocessed_data/preprocessed_test.json" \
-#    --output_filepath "./${test_dataset_dir}/preprocessed_data/test_with_probs.json" \
-#    --use_contents \
-#    --add_fk_info \
-#    --mode "test"
+# preprocess test set
+python preprocessing.py \
+    --mode "test" \
+    --table_path $table_path \
+    --input_dataset_path $input_dataset_path \
+    --output_dataset_path "./${test_dataset_dir}/preprocessed_data/preprocessed_test.json" \
+    --db_path $db_path \
+    --target_type "sql"
 
-## generate text2sql test set
-#python text2sql_data_generator.py \
-#    --input_dataset_path "./${test_dataset_dir}/preprocessed_data/test_with_probs.json" \
-#    --output_dataset_path "./${test_dataset_dir}/preprocessed_data/resdsql_test.json" \
-#    --topk_table_num 4 \
-#    --topk_column_num 5 \
-#    --mode "test" \
-#    --use_contents \
-#    --add_fk_info \
-#    --output_skeleton \
-#    --target_type "sql"
+# predict probability for each schema item
+python schema_item_classifier.py \
+    --batch_size 32 \
+    --device $device \
+    --seed 42 \
+    --save_path $schema_item_classifier_model_save_path \
+    --dev_filepath "./${test_dataset_dir}/preprocessed_data/preprocessed_test.json" \
+    --output_filepath "./${test_dataset_dir}/preprocessed_data/test_with_probs.json" \
+    --use_contents \
+    --add_fk_info \
+    --mode "test"
+
+# generate text2sql test set
+python text2sql_data_generator.py \
+    --input_dataset_path "./${test_dataset_dir}/preprocessed_data/test_with_probs.json" \
+    --output_dataset_path "./${test_dataset_dir}/preprocessed_data/resdsql_test.json" \
+    --topk_table_num 4 \
+    --topk_column_num 5 \
+    --mode "test" \
+    --use_contents \
+    --add_fk_info \
+    --output_skeleton \
+    --target_type "sql"
 
 # inference using the best text2sql ckpt
 python text2sql.py \

@@ -6,6 +6,7 @@
 
 data/
 data_refined/
+data_autogen/
 database/
 database_refined/
 database_refined_old/

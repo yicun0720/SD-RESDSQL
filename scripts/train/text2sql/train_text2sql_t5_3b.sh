@@ -1,5 +1,7 @@
 set -e
 
+target=$1
+
 if [ $target = "baseline" ]
 then
     dataset_dir="data"
@@ -21,9 +23,7 @@ python -u text2sql.py \
     --learning_rate 5e-5 \
     --epochs 128 \
     --seed 42 \
-#    --save_path "/mnt/pj_nfs/yicun/models/text2sql-t5-3b" \
     --save_path "./models/text2sql-t5-3b_${target}" \
-#    --tensorboard_save_path "/mnt/pj_nfs/yicun/tensorboard_log/text2sql-t5-3b" \
     --tensorboard_save_path "./tensorboard_log/text2sql-t5-3b_${target}" \
     --model_name_or_path "t5-3b" \
     --use_adafactor \
